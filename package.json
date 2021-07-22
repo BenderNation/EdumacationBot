@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/BenderNation/EdumacationBot/issues"
   },
-  "homepage": "https://github.com/BenderNation/EdumacationBot#readme"
+  "homepage": "https://github.com/BenderNation/EdumacationBot#readme",
+  "dependencies": {
+    "discord.js": "^12.5.3"
+  }
 }

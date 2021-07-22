@@ -1,0 +1,1 @@
+const Discord = requires('discord.js');
