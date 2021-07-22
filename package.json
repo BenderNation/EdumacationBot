@@ -1,0 +1,19 @@
+{
+  "name": "edumacationbot",
+  "version": "1.0.0",
+  "description": "Discord bot and application to assist with school work and exams",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BenderNation/EdumacationBot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BenderNation/EdumacationBot/issues"
+  },
+  "homepage": "https://github.com/BenderNation/EdumacationBot#readme"
+}
