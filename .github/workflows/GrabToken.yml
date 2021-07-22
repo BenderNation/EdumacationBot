@@ -1,0 +1,27 @@
+# Simple workflow to grab the secret tokens from GitHub and set them as environment variables
+
+name: Grab Tokens
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push events
+  push:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  fetch:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Hello, world!
+        
+        env: 
+          BOT_PUBLIC ${{ secrets.BOT_PUBLIC }}
+          BOT_PRIVATE ${{ secrets.BOT_TOKEN }}
