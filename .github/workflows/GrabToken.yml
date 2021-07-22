@@ -23,5 +23,5 @@ jobs:
         run: echo Hello, world!
         
         env: 
-          BOT_PUBLIC ${{ secrets.BOT_PUBLIC }},
-          BOT_PRIVATE ${{ secrets.BOT_TOKEN }}
+          BOT_PUBLIC: ${{ secrets.BOT_PUBLIC }}
+          BOT_PRIVATE: ${{ secrets.BOT_TOKEN }}
