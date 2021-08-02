@@ -25,3 +25,4 @@ jobs:
         env: 
           BOT_PUBLIC: ${{ secrets.BOT_PUBLIC }}
           BOT_PRIVATE: ${{ secrets.BOT_TOKEN }}
+          
