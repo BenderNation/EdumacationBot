@@ -2,7 +2,7 @@
   "name": "edumacationbot",
   "version": "1.0.0",
   "description": "Discord bot and application to assist with school work and exams",
-  "main": "main.js",
+  "main": "bot.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/BenderNation/EdumacationBot#readme",
   "dependencies": {
-    "discord.js": "^12.5.3",
+    "discord.js": "^13.0.0-dev.t1628208261.a56ba09",
     "dotenv": "^10.0.0"
   }
 }
