@@ -1,5 +1,6 @@
-const SQLite3 = require('sqlite3').verbose();
+const SQLite3 = require('@journeyapps/sqlcipher').verbose();
 const dbPath = './db/database.db';
+require('dotenv').config();
 
 /* db creates a database object from existing file or creates one if not found */
 
@@ -61,10 +62,13 @@ function get() {
 function connect(path = dbPath) {
   db  = new SQLite3.Database(path, (err) => {
     if (err) {
-      console.erroror(err.message);
+      console.error(err.message);
     }
     console.log('Connection to database established.');
   });
+
+  //Encrypts/decrypts the database with a passphrase
+  db.run("PRAGMA key = ?", process.env.DB_PASSWORD);
 
   //Enables foreign key contraints
   db.run("PRAGMA foreign_keys = ON");
