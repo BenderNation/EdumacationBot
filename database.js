@@ -20,7 +20,7 @@ function createUserTable() {
 
 function createNotesTable() {
   const cmd = `CREATE TABLE NotesTable (
-    noteID INTEGER PRIMARY KEY,
+    noteID INTEGER SERIAL PRIMARY KEY,
     discordID INTEGER,
     noteMessage TEXT,
     FOREIGN KEY(discordID) references UserTable(discordID))`;
@@ -34,7 +34,7 @@ function createNotesTable() {
 
 function createReminderTable() {
   const cmd = `CREATE TABLE ReminderTable (
-    reminderID INTEGER PRIMARY KEY,
+    reminderID INTEGER SERIAL PRIMARY KEY,
     discordID INTEGER,
     reminderMessage TEXT,
     notifyTime INTEGER,
@@ -68,7 +68,7 @@ function connect(path = dbPath) {
   });
 
   //Encrypts/decrypts the database with a passphrase
-  db.run("PRAGMA key = ?", process.env.DB_PASSWORD);
+  db.run(`PRAGMA key = ${process.env.DB_PASSWORD}`);
 
   //Enables foreign key contraints
   db.run("PRAGMA foreign_keys = ON");
@@ -93,22 +93,38 @@ function insertData(tableName, dataArray) {
   // ex of use: insertUserTable(<value for discordID>, <value of nickname>, <value for canvasToken>);
   //            the above generates a string with the apporiate values
   const insertUserTable = "insert into UserTable (discordID, nickname, canvasToken) values (?,?,?)";
-  const insertNotesTable = "insert into NotesTable (noteID, discordID, noteMessage) values (?,?,?)";
-  const insertReminderTable = "insert into ReminderTable (reminderID, discordID, reminderMessage, notifyTime) values (?,?,?,?)";
-
+  const insertNotesTable = "insert into NotesTable (discordID, noteMessage) values (?,?)";
+  const insertReminderTable = "insert into ReminderTable (discordID, reminderMessage, notifyTime) values (?,?,?)";
+  let result = -1;
   switch (tableName) {
-    case('UserTable'):
-      db.run(insertUserTable, dataArray);
-      break;
-    case('NotesTable'):
-      db.run(insertNotesTable, dataArray);
-      break;
-    case('ReminderTable'):
-      db.run(insertReminderTable, dataArray);
-      break;
-    default:
+    case('UserTable'): {
+      db.run(insertUserTable, dataArray, (err)=>{
+        if(err) {
+          console.error("SQL Insertion error occured: " + err.message);
+        }
+      });
+      return (result == -1)? result: this.lastID;
+    }
+    case('NotesTable'): {
+      db.run(insertNotesTable, dataArray, (err) => {
+        if(err) {
+          console.error("SQL Insertion error occured: " + err.message);
+        }
+      });
+      return (result == -1)? result: this.lastID;
+    }
+    case('ReminderTable'): {
+      db.run(insertReminderTable, dataArray, (err) => {
+        if(err) {
+          console.error("SQL Insertion error occured: " + err.message);
+        }
+      });
+      return (result == -1)? result: this.lastID;
+    }
+    default: {
       console.error("No such table: " + tableName);
       break;
+    }
   }
 }
 
@@ -128,7 +144,7 @@ function RemoveSelectedData(tableName, dataArray) {
       db.run(RemoveReminderTable, dataArray);
       break;
     default:
-      console.erroror("No such table: " + tableName);
+      console.error("No such table: " + tableName);
       break;
   }
 }
@@ -154,6 +170,7 @@ function getNotes(discordID, callback) {
 }
 
 
+
 function findNotes(discordID, message, callback) {
   const cmd = "SELECT noteMessage FROM NotesTable WHERE discordID = ? AND noteMessage LIKE ?";
 
@@ -173,6 +190,7 @@ function getReminders(discordID, callback) {
   db.all(cmd, discordID);
   callback(result);
 }
+
 
 // for testing purposes
 
