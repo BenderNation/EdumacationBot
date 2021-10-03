@@ -101,55 +101,55 @@ function connect(path = dbPath) {
 function closeDatabase() {
   db.close((err) => {
     if (err) {
-      return console.erroror(err.message);
+      return console.error(err.message);
     }
     console.log('Close the database connection.');
   });
-}
-
-function deleteTable(table) {
-  db.run(`delete from ${table}`);
-  db.run("vacuum");
 }
 
 function insertData(tableName, dataArray) {
   // insert string literals for all three tables
   // ex of use: insertUserTable(<value for discordID>, <value of nickname>, <value for canvasToken>);
   //            the above generates a string with the apporiate values
-  const insertUserTable = "insert into UserTable (discordID, nickname, canvasToken) values (?,?,?)";
-  const insertNotesTable = "insert into NotesTable (discordID, noteMessage) values (?,?)";
-  const insertReminderTable = "insert into ReminderTable (discordID, reminderMessage, notifyTime) values (?,?,?)";
-  let result = -1;
+  const insertUserTable = "INSERT into UserTable (discordID, nickname, canvasToken) VALUES (?,?,?)";
+  const insertNotesTable = "INSERT into NotesTable (discordID, noteMessage) VALUES (?,?)";
+  const insertReminderTable = "INSERT into ReminderTable (discordID, reminderMessage, notifyTime) VALUES (?,?,?)";
+
+
+  return new Promise((resolve, reject) => {
   switch (tableName) {
     case('UserTable'): {
-      db.run(insertUserTable, dataArray, (err)=>{
+        db.run(insertUserTable, dataArray, function(err) {
         if(err) {
-          console.error("SQL Insertion error occured: " + err.message);
+            reject(err);
         }
-      });
-      return (result == -1)? result: this.lastID;
+          resolve(this.lastID);});
+        break;
     }
     case('NotesTable'): {
-      db.run(insertNotesTable, dataArray, (err) => {
+        db.run(insertNotesTable, dataArray, function(err) {
         if(err) {
-          console.error("SQL Insertion error occured: " + err.message);
+            reject(err);
         }
-      });
-      return (result == -1)? result: this.lastID;
+          resolve(this.lastID);});
+        db.all("SELECT * from NotesTable", [] , (err, rows) => {if(err) console.error(err); else console.log(rows);});
+        break;
     }
     case('ReminderTable'): {
-      db.run(insertReminderTable, dataArray, (err) => {
+        db.run(insertReminderTable, dataArray, function(err) {
         if(err) {
-          console.error("SQL Insertion error occured: " + err.message);
+            reject(err);
         }
-      });
-      return (result == -1)? result: this.lastID;
+          resolve(this.lastID);});
+        break;
     }
     default: {
-      console.error("No such table: " + tableName);
+        reject(new Error("No such table: " + tableName));
       break;
     }
   }
+
+  });
 }
 
 const RemoveUserTable = "delete from UserTable where discordID = ?";

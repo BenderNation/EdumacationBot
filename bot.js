@@ -104,7 +104,7 @@ client.on('interactionCreate', async interaction => {
 	if (!interaction.isCommand()) return;
   if(interaction.commandName === 'help')
     runHelp(interaction);
-  if(interaction.commandName === 'addnote')
+  else if(interaction.commandName === 'addnote')
     addNote(interaction);
 });
 
@@ -116,13 +116,20 @@ client.on('interactionCreate', async interaction => {
 
 async function addNote(interaction) {
   let userID = interaction.member.id;
-  let message = await interaction.options.getMessage("Message");
-  let insertResult = database.insertData("NotesTable", [userID, message]);
-  if(insertResult != -1) {
-    interaction.reply(`Successfully added note ID #${insertResult}`);
+  let message = await interaction.options.getString("message");
+
+  console.log(message);
+  console.log(userID);
+  let userRegistered = await checkUserRegistered(userID);
+  console.log(userRegistered);
+  if (userRegistered) {
+    let returnID = await database.insertData("NotesTable", [userID, message]);
+    interaction.reply(`Added Note ${returnID}`);
+
+  } else {
+    interaction.reply(`Please register with /register first!`);
   }
-  else {
-    interaction.reply(`failed big time, get gud`);
+}
   }
 }
 
