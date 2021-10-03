@@ -198,7 +198,7 @@ function getCanvasToken(discordID, callback) {
   }).finalize();
 }
 
-function getNote(discordID) {
+function getNotes(discordID) {
   return new Promise((resolve, reject) => {
     let stm = db.prepare("SELECT noteID, noteMessage FROM NotesTable WHERE discordID = ?");
 
@@ -213,9 +213,17 @@ function getNote(discordID) {
   });
 }
 
-function getNote(noteID, discordID, callback) {
-  let stm = db.prepare("SELECT noteMessage FROM NotesTable WHERE noteID = ? AND discordID = ?");
-  stm.get([noteID, discordID], callback).finalize();
+function getNote(noteID, discordID) {
+  return new Promise((resolve, reject) => {
+    let stm = db.prepare("SELECT noteMessage FROM NotesTable WHERE noteID = ? AND discordID = ?");
+    stm.get([noteID, discordID], (err, row) => {
+      if(err)
+        reject(err);
+      else{ 
+        resolve(row);
+      }
+    }).finalize();
+  });
 }
 
 function findNotes(discordID, message, callback) {
@@ -294,6 +302,7 @@ module.exports = {
   getUserRow,
   getCanvasToken,
   getNote,
+  getNotes,
   getReminders,
   populateData,
   debugSQL,

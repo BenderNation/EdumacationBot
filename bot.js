@@ -165,21 +165,17 @@ async function getNote(interaction) {
   let userID = interaction.member.id;
   let noteID = await interaction.options.getNumber("noteid");
 
-  // // makes noteID message into number
-  // noteID = parseInt(noteID, 10);
-
   let userRegistered = await checkUserRegistered(userID);
   console.log(userRegistered);
   if (userRegistered) {
-    let resultNote = database.getNote(noteID, userID, (err, row) => {
-      if (err) {
-        interaction.reply("Error grabbing note from database");
-      } else if (row === undefined) {
+    let resultNote = await database.getNote(noteID, userID).catch(
+      ()=>interaction.reply("Error grabbing note from database")
+    );
+    if (resultNote === undefined) {
         interaction.reply("No such note exists");
-      } else {
+    } else {
         interaction.reply(`Note ${noteID}: ${row["noteMessage"]}`);
-      }
-    })
+    }
   } else {
     interaction.reply(`Please register with /register first!`);
   }
