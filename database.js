@@ -9,7 +9,7 @@ let db;
 // data = [discordID, nickname, canvasToken, noteID, reminderID, reminderMessage, notify]
 
 function createUserTable() {
-    const cmd = 'CREATE TABLE UserTable (discordID INTEGER PRIMARY KEY, nickname TEXT, canvasToken TEXT)';
+    const cmd = 'CREATE TABLE UserTable (discordID INTEGER PRIMARY KEY NOT NULL, nickname TEXT, canvasToken TEXT)';
     db.run(cmd, (err, val) => {
       if (err)
         console.error("User Table creation failure", err.message);
@@ -19,32 +19,32 @@ function createUserTable() {
 }
 
 function createNotesTable() {
-  const cmd = `CREATE TABLE NotesTable (
-    noteID INTEGER SERIAL PRIMARY KEY,
+  let stm = db.prepare(`CREATE TABLE NotesTable (
+    noteID INTEGER PRIMARY KEY NOT NULL,
     discordID INTEGER,
     noteMessage TEXT,
-    FOREIGN KEY(discordID) references UserTable(discordID))`;
-  db.run(cmd, (err, val) => {
+    FOREIGN KEY(discordID) references UserTable(discordID))`)
+  stm.run((err, val) => {
     if (err)
       console.error("Notes Table creation failure", err.message);
     else
       console.log("Created notes table");
-  });
+  }).finalize();
 }
 
 function createReminderTable() {
-  const cmd = `CREATE TABLE ReminderTable (
-    reminderID INTEGER SERIAL PRIMARY KEY,
+  let stm = db.prepare(`CREATE TABLE ReminderTable (
+    reminderID INTEGER PRIMARY KEY NOT NULL,
     discordID INTEGER,
     reminderMessage TEXT,
     notifyTime INTEGER,
-    FOREIGN KEY(discordID) references UserTable(discordID))`;
-  db.run(cmd, (err, val) => {
+    FOREIGN KEY(discordID) references UserTable(discordID))`)
+  stm.run((err, val) => {
     if (err)
       console.error("Reminder Table creation failure", err.message);
     else
       console.log("Created reminder table");
-  });
+  }).finalize();
 }
 
 function getUserTable() {
