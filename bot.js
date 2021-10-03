@@ -8,7 +8,6 @@ const database = require("./database.js");
 const dbFile = "./db/testDB.db";
 
 
-
 client.once('ready', () => {
 	database.connect(dbFile);
   database.getUserTable();
@@ -18,10 +17,6 @@ client.once('ready', () => {
   
   console.log('Ready!');
 });
-
-
-
-
 
 //Creating Commands to see in the /commands
 client.on('messageCreate', async message => {
@@ -56,6 +51,15 @@ client.on('messageCreate', async message => {
       name: 'deregister',
       description: "Removes an user and all associated data",
     },
+    {
+      name: 'getnote',
+      description: 'Grabbing notes from the database by note ID',
+      options: [{name: 'noteid', type: "INTEGER", description: 'ID of note to grab', required: true}]
+    },
+    {
+      name:'getnoteids',
+      description: 'Grabs all notes from user',
+    }
     ];
 		try{
       for(cmd of commands){
@@ -130,6 +134,8 @@ client.on('interactionCreate', async interaction => {
     registerUser(interaction);
   else if(interaction.commandName === 'deregister')
     deregister(interaction);
+  else if(interaction.commandName === 'getnoteids')
+    getNoteIDs(interaction);
 });
 
 // function insertData(tableName, dataArray)
@@ -154,12 +160,43 @@ async function addNote(interaction) {
     interaction.reply(`Please register with /register first!`);
   }
 }
+
+async function getNote(interaction) {
+  let userID = interaction.member.id;
+  let noteID = await interaction.options.getNumber("noteid");
+
+  // // makes noteID message into number
+  // noteID = parseInt(noteID, 10);
+
+  let userRegistered = await checkUserRegistered(userID);
+  console.log(userRegistered);
+  if (userRegistered) {
+    let resultNote = database.getNote(noteID, userID, (err, row) => {
+      if (err) {
+        interaction.reply("Error grabbing note from database");
+      } else if (row === undefined) {
+        interaction.reply("No such note exists");
+      } else {
+        interaction.reply(`Note ${noteID}: ${row["noteMessage"]}`);
+      }
+    })
+  } else {
+    interaction.reply(`Please register with /register first!`);
   }
 }
 
+// getting a list of noteIDs that are under one user
+async function getNoteIDs(interaction) {
+  let userID = interaction.member.id;
 
-async function getNote(noteID) {
   
+  let userRegistered = await checkUserRegistered(userID);
+  if (userRegistered) {
+    let noteResults = await database.getNotes(userID);
+    interaction.reply(noteResults.map((rows) => rows['noteID']).toString());
+  } else {
+    interaction.reply(`Please register with /register first!`);
+  }
 }
 
 // old header: async function registerUser(interaction, userID, nickname, canvasToken) {

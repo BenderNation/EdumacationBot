@@ -190,25 +190,33 @@ function getUserRow(discordID) {
 
 // const getUserTableData = "SELECT from <tablename> where discordID = "value", canvasToken ="value"
 function getCanvasToken(discordID, callback) {
-  const cmd = "SELECT canvasToken from UserTable where discordID = ?";
-  db.get(cmd, discordID, (err, row) => {
+  let stm = db.prepare("SELECT canvasToken from UserTable where discordID = ?");
+  stm.get([discordID], (err, row) => {
     if(err)
       console.error(err);
     callback(row);
-  });
+  }).finalize();
 }
 
-function getNotes(discordID, callback) {
-  const cmd = "SELECT noteID, noteMessage FROM NotesTable WHERE discordID = ?";
+function getNotes(discordID) {
+  return new Promise((resolve, reject) => {
+    let stm = db.prepare("SELECT noteID, noteMessage FROM NotesTable WHERE discordID = ?");
 
-  db.all(cmd, [discordID], (err, rows) => {
+    stm.all([discordID], (err, rows) => {
     if(err)
-      console.error(err);
-    callback(rows);
+        reject(err);
+      else{ 
+        console.log(rows);
+        resolve(rows);
+      }
+    }).finalize();
   });
 }
 
-
+function getNote(noteID, discordID, callback) {
+  let stm = db.prepare("SELECT noteMessage FROM NotesTable WHERE noteID = ? AND discordID = ?");
+  stm.get([noteID, discordID], callback).finalize();
+}
 
 function findNotes(discordID, message, callback) {
   const cmd = "SELECT noteMessage FROM NotesTable WHERE discordID = ? AND noteMessage LIKE ?";
