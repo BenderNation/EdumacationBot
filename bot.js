@@ -81,7 +81,7 @@ client.on('messageCreate', async message => {
     message.reply("Removed the table: " + strArr[1])
     .then(() => console.log(`Replied to message "${message.content}"`))
     .catch(console.error);
-	}
+  }
 });
 
 //Command Help
@@ -188,8 +188,8 @@ async function getNote(interaction) {
 // getting a list of noteIDs that are under one user
 async function getNoteIDs(interaction) {
   let userID = interaction.member.id;
-
   
+
   let userRegistered = await checkUserRegistered(userID);
   if (userRegistered) {
     let noteResults = await database.getNotes(userID);

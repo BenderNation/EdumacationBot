@@ -117,37 +117,37 @@ function insertData(tableName, dataArray) {
 
 
   return new Promise((resolve, reject) => {
-  switch (tableName) {
-    case('UserTable'): {
+    switch (tableName) {
+      case('UserTable'): {
         db.run(insertUserTable, dataArray, function(err) {
-        if(err) {
+          if(err) {
             reject(err);
-        }
+          }
           resolve(this.lastID);});
         break;
-    }
-    case('NotesTable'): {
+      }
+      case('NotesTable'): {
         db.run(insertNotesTable, dataArray, function(err) {
-        if(err) {
+          if(err) {
             reject(err);
-        }
+          }
           resolve(this.lastID);});
         db.all("SELECT * from NotesTable", [] , (err, rows) => {if(err) console.error(err); else console.log(rows);});
         break;
-    }
-    case('ReminderTable'): {
+      }
+      case('ReminderTable'): {
         db.run(insertReminderTable, dataArray, function(err) {
-        if(err) {
+          if(err) {
             reject(err);
-        }
+          }
           resolve(this.lastID);});
         break;
-    }
-    default: {
+      }
+      default: {
         reject(new Error("No such table: " + tableName));
-      break;
+        break;
+      }
     }
-  }
 
   });
 }
@@ -155,7 +155,7 @@ function insertData(tableName, dataArray) {
 
 
 function removeUserData(discordID) {
-const RemoveUserTable = "delete from UserTable where discordID = ?";
+  const RemoveUserTable = "delete from UserTable where discordID = ?";
   const RemoveNotesTable = "delete from NotesTable where discordID = ?";
   const RemoveReminderTable = "delete from ReminderTable where discordID = ?";
 
@@ -168,7 +168,7 @@ const RemoveUserTable = "delete from UserTable where discordID = ?";
   });
 
 
-  }
+}
 
 // function getUserRow(discordID, callback) {
 //   let stm = db.prepare("SELECT * from UserTable where discordID = ?");
@@ -203,7 +203,7 @@ function getNotes(discordID) {
     let stm = db.prepare("SELECT noteID, noteMessage FROM NotesTable WHERE discordID = ?");
 
     stm.all([discordID], (err, rows) => {
-    if(err)
+      if(err)
         reject(err);
       else{ 
         console.log(rows);
