@@ -11,9 +11,10 @@ const dbFile = "./db/testDB.db";
 
 client.once('ready', () => {
 	database.connect(dbFile);
-  // database.createUserTable();
-  // database.createNotesTable();
-  // database.createReminderTable();
+  database.getUserTable();
+  database.getNotesTable();
+  database.getReminderTable();
+
   
   console.log('Ready!');
 });
@@ -31,7 +32,7 @@ client.on('messageCreate', async message => {
 		const commands = [
     {
       name:'help',
-      description:'Lists commands and how to use bot',
+      description:'Lists commands and how to use bot'
     },
     {
       name:'addnote',
@@ -47,10 +48,14 @@ client.on('messageCreate', async message => {
     //   name:'getnotes',
     //   description:'Sends all notes made by user',
     // },
-    // {
-    //   name:'register',
-    //   description:'Registers Discord user with bot',
-    // }
+    {
+      name:'register',
+      description:'Registers Discord user with bot',
+    },
+    {
+      name: 'deregister',
+      description: "Removes an user and all associated data",
+    },
     ];
 		try{
       for(cmd of commands){
@@ -106,6 +111,10 @@ client.on('interactionCreate', async interaction => {
     runHelp(interaction);
   else if(interaction.commandName === 'addnote')
     addNote(interaction);
+  else if(interaction.commandName === 'register')
+    registerUser(interaction);
+  else if(interaction.commandName === 'deregister')
+    deregister(interaction);
 });
 
 // function insertData(tableName, dataArray)
@@ -138,16 +147,35 @@ async function getNote(noteID) {
   
 }
 
-async function getAllNotes(interaction) {
+// old header: async function registerUser(interaction, userID, nickname, canvasToken) {
+async function registerUser(interaction) {
   let userID = interaction.member.id;
+  // let nickname = await interaction.options.getMessage("nickname");
+  // let canvasToken = await interaction.options.getMessage("nickname");
   
+  let userRegistered = await checkUserRegistered(userID);
+  if (!userRegistered) {
+  database.insertData("UserTable", [userID, "nickname", "token"], (err) => {
+    if(err) {
+      interaction.reply(`Registration Failed with Error ${err}`);
+    } else {
+      interaction.reply("Registeration successful");
+    }
+  });
+  } else {
+    interaction.reply("You're already registered.");
+  }
 }
 
-async function registerUser(userID, nickname, canvasToken) {
-  database.insertData("UserTable", [userID, nickname, canvasToken]);
+async function checkUserRegistered(discordID) {
+  return (await database.getUserRow(discordID)) !== undefined;
 }
+
+async function deregister(interaction) {
+  let userID = interaction.member.id;
+  let result = await database.removeUserData(userID);
+  interaction.reply("You're deregistered");
+}
+
 
 client.login(process.env.BOT_PRIVATE);
-
-//console.log("I am commenting my thingy: ",process.env.BOT_PRIVATE);
-

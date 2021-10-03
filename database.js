@@ -171,6 +171,23 @@ function RemoveSelectedData(tableName, dataArray) {
       console.error("No such table: " + tableName);
       break;
   }
+
+// function getUserRow(discordID, callback) {
+//   let stm = db.prepare("SELECT * from UserTable where discordID = ?");
+//   stm.get([discordID], callback);
+// }
+
+function getUserRow(discordID) {
+  return new Promise((resolve,reject) => {
+    let stm = db.prepare("SELECT * from UserTable where discordID = ?");
+    stm.get([discordID], (err, row) =>{
+      if(err) 
+        reject(err);
+      else
+        // resolve(row);
+        resolve(row)
+    }).finalize();
+  });
 }
 
 // const getUserTableData = "SELECT from <tablename> where discordID = "value", canvasToken ="value"
@@ -247,7 +264,7 @@ module.exports = {
   closeDatabase,
   deleteTable,
   insertData,
-  RemoveSelectedData,
+  getUserRow,
   getCanvasToken,
   getNotes,
   getReminders,
