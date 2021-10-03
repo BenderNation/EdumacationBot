@@ -201,16 +201,9 @@ async function registerUser(interaction) {
   // let nickname = await interaction.options.getMessage("nickname");
   // let canvasToken = await interaction.options.getMessage("nickname");
   
-  let userRegistered = await checkUserRegistered(userID);
+  let userRegistered = await checkUserRegistered(userID).catch((e) => interaction.reply(`Error checking registration: ${e}`));
   if (!userRegistered) {
-  database.insertData("UserTable", [userID, "nickname", "token"], (err) => {
-    if(err) {
-      console.error()
-      interaction.reply(`Registration Failed with Error ${err}`);
-    } else {
-      interaction.reply("Registeration successful");
-    }
-  });
+    database.insertData("UserTable", [userID, "nickname", "token"]).catch((e) => interaction.reply(`Registration Failed with Error ${e}`));
   } else {
     interaction.reply("You're already registered.");
   }
