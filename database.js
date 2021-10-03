@@ -213,10 +213,6 @@ function getNote(discordID) {
   });
 }
 
-function getNote(noteID, discordID, callback) {
-  let stm = db.prepare("SELECT noteMessage FROM NotesTable WHERE noteID = ? AND discordID = ?");
-  stm.get([noteID, discordID], callback).finalize();
-}
 
 function findNotes(discordID, message, callback) {
   const cmd = "SELECT noteMessage FROM NotesTable WHERE discordID = ? AND noteMessage LIKE ?";
