@@ -47,16 +47,40 @@ function createReminderTable() {
   });
 }
 
-function get() {
+function getUserTable() {
   let cmd = " SELECT name FROM sqlite_master WHERE type='table' AND name='UserTable' ";
   db.get(cmd, function (err, val) { // sql method: .get(sql, params, (err, row))
     if (val == undefined) {
-          console.log("No database file - creating one");
+          console.log("No user database table - creating one");
           createUserTable();
     } else {
-          console.log("Database file found");
+          console.log("User database table found");
     }
   });
+}
+
+function getNotesTable() {
+  let cmd = " SELECT name FROM sqlite_master WHERE type='table' AND name='NotesTable' ";
+  db.get(cmd, function (err, val) { // sql method: .get(sql, params, (err, row))
+    if (val == undefined) {
+          console.log("No notes database - creating one");
+          createNotesTable();
+    } else {
+          console.log("Notes database table found");
+    }
+  });
+}
+
+function getReminderTable() {
+  let stm = db.prepare(" SELECT name FROM sqlite_master WHERE type='table' AND name='ReminderTable' ");
+  stm.get(function (err, val) { // sql method: .get(sql, params, (err, row))
+    if (val == undefined) {
+          console.log("No reminders database - creating one");
+          createReminderTable();
+    } else {
+          console.log("Reminders database table found");
+    }
+  }).finalize();
 }
 
 function connect(path = dbPath) {
@@ -216,7 +240,9 @@ module.exports = {
   createUserTable,
   createNotesTable,
   createReminderTable,
-  get,
+  getUserTable,
+  getNotesTable,
+  getReminderTable,
   connect,
   closeDatabase,
   deleteTable,
