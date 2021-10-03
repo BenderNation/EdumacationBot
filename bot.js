@@ -174,7 +174,7 @@ async function getNote(interaction) {
     if (resultNote === undefined) {
         interaction.reply("No such note exists");
     } else {
-        interaction.reply(`Note ${noteID}: ${row["noteMessage"]}`);
+        interaction.reply(`Note ${noteID}: ${resultNote["noteMessage"]}`);
     }
   } else {
     interaction.reply(`Please register with /register first!`);
