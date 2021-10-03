@@ -34,14 +34,10 @@ client.on('messageCreate', async message => {
       description:'Inserts a note into the Database',
       options: [{name: 'message', type: "STRING", description: 'The note to save', required: true}]
     },
-    {
-      name:'deletenote',
-      description:'Deletes a note from the Database',
-      options: [{name: 'noteid', type: "INTEGER", description: 'ID of note to remove', required: true}]
-    },
     // {
-    //   name:'getnotes',
-    //   description:'Sends all notes made by user',
+    //   name:'deletenote',
+    //   description:'Deletes a note from the Database',
+    //   options: [{name: 'noteid', type: "NUMBER", description: 'ID of note to remove', required: true}]
     // },
     {
       name:'register',
@@ -54,7 +50,7 @@ client.on('messageCreate', async message => {
     {
       name: 'getnote',
       description: 'Grabbing notes from the database by note ID',
-      options: [{name: 'noteid', type: "INTEGER", description: 'ID of note to grab', required: true}]
+      options: [{name: 'noteid', type: "NUMBER", description: 'ID of note to grab', required: true}]
     },
     {
       name:'getnoteids',
@@ -130,12 +126,16 @@ client.on('interactionCreate', async interaction => {
     runHelp(interaction);
   else if(interaction.commandName === 'addnote')
     addNote(interaction);
+  // else if(interaction.commandName === 'deletenote')
+  //   deleteNote(interaction);
   else if(interaction.commandName === 'register')
     registerUser(interaction);
   else if(interaction.commandName === 'deregister')
     deregister(interaction);
   else if(interaction.commandName === 'getnoteids')
     getNoteIDs(interaction);
+  else if(interaction.commandName === 'getnote')
+    getNote(interaction);
 });
 
 // function insertData(tableName, dataArray)
@@ -209,6 +209,7 @@ async function registerUser(interaction) {
   if (!userRegistered) {
   database.insertData("UserTable", [userID, "nickname", "token"], (err) => {
     if(err) {
+      console.error()
       interaction.reply(`Registration Failed with Error ${err}`);
     } else {
       interaction.reply("Registeration successful");

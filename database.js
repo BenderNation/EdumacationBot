@@ -198,7 +198,7 @@ function getCanvasToken(discordID, callback) {
   }).finalize();
 }
 
-function getNotes(discordID) {
+function getNote(discordID) {
   return new Promise((resolve, reject) => {
     let stm = db.prepare("SELECT noteID, noteMessage FROM NotesTable WHERE discordID = ?");
 
@@ -293,7 +293,7 @@ module.exports = {
   removeUserData,
   getUserRow,
   getCanvasToken,
-  getNotes,
+  getNote,
   getReminders,
   populateData,
   debugSQL,
