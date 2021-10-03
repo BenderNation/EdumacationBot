@@ -152,24 +152,22 @@ function insertData(tableName, dataArray) {
   });
 }
 
-const RemoveUserTable = "delete from UserTable where discordID = ?";
-const RemoveNotesTable = "delete from NotesTable where discordID = ? and NoteID = ?";
-const RemoveReminderTable = "delete from ReminderTable where discordID = ? and reminderID = ?";
 
-function RemoveSelectedData(tableName, dataArray) {
-  switch (tableName) {
-    case('UserTable'):
-      db.run(RemoveUserTable, dataArray);
-      break;
-    case('NotesTable'):
-      db.run(RemoveNotesTable, dataArray);
-      break;
-    case('ReminderTable'):
-      db.run(RemoveReminderTable, dataArray);
-      break;
-    default:
-      console.error("No such table: " + tableName);
-      break;
+
+function removeUserData(discordID) {
+const RemoveUserTable = "delete from UserTable where discordID = ?";
+  const RemoveNotesTable = "delete from NotesTable where discordID = ?";
+  const RemoveReminderTable = "delete from ReminderTable where discordID = ?";
+
+
+  return new Promise((resolve, reject) => {
+    db.run(RemoveNotesTable, discordID, (err) => reject(err));
+    db.run(RemoveReminderTable, discordID, (err) => reject(err));
+    db.run(RemoveUserTable, discordID, (err) => reject(err));
+    resolve(true);
+  });
+
+
   }
 
 // function getUserRow(discordID, callback) {
@@ -232,8 +230,28 @@ function getReminders(discordID, callback) {
   callback(result);
 }
 
-
-// for testing purposes
+function deleteTable(tableName) {
+  // return new Promise((resolve,reject) => {
+  //   let stm = db.prepare("SELECT * from UserTable where discordID = ?");
+  //   stm.get([discordID], (err, row) =>{
+  //     if(err) 
+  //       reject(err);
+  //     else
+  //       // resolve(row);
+  //       resolve(row)
+  //   }).finalize();
+  // });
+  return new Promise((resolve, reject) => {
+    db.run(`DROP TABLE IF EXISTS ${tableName}`, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(true);
+      }
+    });
+  });
+  // db.run("DELETE * FROM sqlite_master WHERE name= ?", [TableName], (err) => {if(err) console.Error(err);});
+}
 
 // const insertUserTable = "insert into UserTable (discordID, nickname, canvasToken) values (?,?,?)";
 // const insertNotesTable = "insert into NotesTable (noteID, discordID, noteMessage) values (?,?,?)";
@@ -264,6 +282,7 @@ module.exports = {
   closeDatabase,
   deleteTable,
   insertData,
+  removeUserData,
   getUserRow,
   getCanvasToken,
   getNotes,

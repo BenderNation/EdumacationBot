@@ -25,7 +25,7 @@ client.once('ready', () => {
 
 //Creating Commands to see in the /commands
 client.on('messageCreate', async message => {
-
+  let strArr = message.content.split(" ");
   if (!client.application?.owner) await client.application?.fetch();
   //Deploy commands to be registered onto Discord
 	if (message.content.toLowerCase() === '-+deploy' && await client.application?.owner.members.has(message.author.id)) {
@@ -70,6 +70,13 @@ client.on('messageCreate', async message => {
     message.reply("Successfully deployed commands")
     .then(() => console.log(`Replied to message "${message.content}"`))
     .catch(console.error);
+	} else if((strArr[0] === '-+removeTable' &&
+             await client.application?.owner.members.has(message.author.id))) {
+
+    await database.deleteTable(strArr[1])
+    message.reply("Removed the table: " + strArr[1])
+    .then(() => console.log(`Replied to message "${message.content}"`))
+    .catch(console.error);
 	}
 });
 
@@ -80,7 +87,7 @@ async function listOfCommands(){
       cmd => {
         var name = "/"+ cmd['name'];
         var description = cmd['description'];
-        var options = cmd['options'];
+        var options = cmd['options'].map((opt) => opt['name']).toString();
         return {'Command Name': name, 'Description': description, 'Options': options};
 
       })
@@ -99,7 +106,15 @@ async function runHelp(interaction){
   .setTimestamp();
   var commandList = await listOfCommands()
   for(var cmd of commandList) {
-    await exampleEmbed.addField(cmd['Command Name'], `Options: ${cmd['Options']} \n ${cmd['Description']}`, false);
+    let cmdDesc;
+    if(cmd['Options'].length == 0) {
+      cmdDesc = `${cmd['Description']}`;
+    }
+    else{
+      cmdDesc = `Options: ${cmd['Options']} \n ${cmd['Description']}`;
+    }
+    await exampleEmbed.addField(cmd['Command Name'], cmdDesc , false);
+
   }
   await interaction.reply({embeds: [exampleEmbed], ephemeral: true});
 };
