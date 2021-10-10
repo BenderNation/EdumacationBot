@@ -34,11 +34,11 @@ client.on('messageCreate', async message => {
       description:'Inserts a note into the Database',
       options: [{name: 'message', type: "STRING", description: 'The note to save', required: true}]
     },
-    // {
-    //   name:'deletenote',
-    //   description:'Deletes a note from the Database',
-    //   options: [{name: 'noteid', type: "NUMBER", description: 'ID of note to remove', required: true}]
-    // },
+    {
+      name:'deletenote',
+      description:'Deletes a note from the Database',
+      options: [{name: 'noteid', type: "NUMBER", description: 'ID of note to remove', required: true}]
+    },
     {
       name:'register',
       description:'Registers Discord user with bot',
@@ -53,8 +53,18 @@ client.on('messageCreate', async message => {
       options: [{name: 'noteid', type: "NUMBER", description: 'ID of note to grab', required: true}]
     },
     {
-      name:'getnoteids',
-      description: 'Grabs all notes from user',
+      name:'getallnotes',
+      description: 'Displays all notes from user',
+    },
+    {
+      name:'addreminder',
+      description: 'Adds a reminder to the database under user ID',
+      options: [{name: 'message', type: "STRING", description: 'The reminder to save', required: true}]
+    },
+    {
+      name:'findnotes',
+      description: 'Searches through the table for posts for the keywords',
+      options: [{name: 'message', type: "STRING", description: 'The keyword to search by', required: true}]
     }
     ];
 		try{
@@ -99,7 +109,7 @@ async function listOfCommands(){
 
 async function runHelp(interaction){
 
-  const exampleEmbed = new MessageEmbed()
+  const helpEmbed = new MessageEmbed()
   .setColor('#0dbadc')
   .setTitle('Help Page')
   .setDescription('The List of Commands')
@@ -113,10 +123,10 @@ async function runHelp(interaction){
     else{
       cmdDesc = `Options: ${cmd['Options']} \n ${cmd['Description']}`;
     }
-    await exampleEmbed.addField(cmd['Command Name'], cmdDesc , false);
+    await helpEmbed.addField(cmd['Command Name'], cmdDesc , false);
 
   }
-  await interaction.reply({embeds: [exampleEmbed], ephemeral: true});
+  await interaction.reply({embeds: [helpEmbed], ephemeral: true});
 };
 
 //Utilizing the command
@@ -126,16 +136,20 @@ client.on('interactionCreate', async interaction => {
     runHelp(interaction);
   else if(interaction.commandName === 'addnote')
     addNote(interaction);
-  // else if(interaction.commandName === 'deletenote')
-  //   deleteNote(interaction);
+  else if(interaction.commandName === 'deletenote')
+    deleteNote(interaction);
   else if(interaction.commandName === 'register')
     registerUser(interaction);
   else if(interaction.commandName === 'deregister')
     deregister(interaction);
-  else if(interaction.commandName === 'getnoteids')
-    getNoteIDs(interaction);
+  else if(interaction.commandName === 'getallnotes')
+    getAllNotes(interaction);
   else if(interaction.commandName === 'getnote')
     getNote(interaction);
+  else if (interaction.commandName === 'addreminder')
+    addReminder(interaction);
+  else if (interaction.commandName === 'findnotes')
+    findNotes(interaction);
 });
 
 // function insertData(tableName, dataArray)
@@ -153,11 +167,42 @@ async function addNote(interaction) {
   let userRegistered = await checkUserRegistered(userID);
   console.log(userRegistered);
   if (userRegistered) {
-    let returnID = await database.insertData("NotesTable", [userID, message]);
+    let returnID = await database.insertData("NotesTable", [userID, message]).catch((e) => {interaction.reply(`addNote failed due to error: ${e}`)});
     interaction.reply(`Added Note ${returnID}`);
+  }
+}
 
-  } else {
-    interaction.reply(`Please register with /register first!`);
+// async function addReminder(interaction) {
+//   let userID = interaction.member.id;
+//   let message = await interaction.options.getString("message");
+
+//   let userRegistered = await checkUserRegistered(userID);
+//   console.log(userRegistered);
+//   if (userRegistered) {
+//     let returnID = await database.insertData("ReminderTable", [userID, message]).catch((e) => {interaction.reply(`addReminder failed due to error: ${e}`)});
+//     interaction.reply(`Added Reminder ${returnID}`);
+//     // if (returnID === undefined) {
+//     //   interaction.reply("No such note exists");
+//     // } else {
+//     //   interaction.reply(`Note ${noteiD} deleted`);
+//     // }
+//   }
+// }
+
+async function deleteNote(interaction) {
+  let userID = interaction.member.id;
+  let noteID = await interaction.options.getNumber("noteid");
+  
+  let userRegistered = await checkUserRegistered(userID);
+  if (userRegistered) {
+    let changes = await database.deleteItem("NotesTable", noteID).catch(
+      (err)=>error_handler(interaction, err)
+    );
+    if (changes === 0) {
+      interaction.reply("No such note exists");
+    } else {
+      interaction.reply(`Note ${noteID} deleted`);
+    }
   }
 }
 
@@ -168,7 +213,7 @@ async function getNote(interaction) {
   let userRegistered = await checkUserRegistered(userID);
   console.log(userRegistered);
   if (userRegistered) {
-    let resultNote = await database.getNote(noteID, userID).catch(
+    let resultNote = await database.findNotes(noteID, userID).catch(
       ()=>interaction.reply("Error grabbing note from database")
     );
     if (resultNote === undefined) {
@@ -176,22 +221,68 @@ async function getNote(interaction) {
     } else {
         interaction.reply(`Note ${noteID}: ${resultNote["noteMessage"]}`);
     }
-  } else {
-    interaction.reply(`Please register with /register first!`);
+  }
+}
+
+async function findNotes(interaction) {
+  let userID = interaction.member.id;
+  let noteMessage = await interaction.options.getString("message");
+
+  let userRegistered = await checkUserRegistered(userID);
+  console.log(userRegistered);
+  if (userRegistered) {
+    let resultNotes = await database.findNotes(userID, noteMessage).catch(
+      (err) => {
+        interaction.reply("Error occured while searching for notes");
+        console.error(err);
+      }
+    );
+    if (resultNotes === undefined) {
+        interaction.reply("No notes found");
+    } else {
+      console.log(await resultNotes);
+      const notesEmbed = new MessageEmbed()
+      .setColor('#0dbadc')
+      .setTitle('Notes Search Results')
+      .setDescription(interaction.member.displayName + `\'s results`)
+      .setTimestamp();
+      for(var note of resultNotes) {
+        console.log(note);
+        try { notesEmbed.addField("Note ID: " + note['noteID'].toString(), note['noteMessage'] , false); }
+        catch (error) {error_handler(interaction, error)};
+      }
+      try {
+        await interaction.reply({embeds: [notesEmbed], ephemeral: false});
+      } catch (error) {
+        error_handler(interaction, error);
+      }
+    }
   }
 }
 
 // getting a list of noteIDs that are under one user
-async function getNoteIDs(interaction) {
+async function getAllNotes(interaction) {
   let userID = interaction.member.id;
-  
-
   let userRegistered = await checkUserRegistered(userID);
   if (userRegistered) {
-    let noteResults = await database.getNotes(userID);
-    interaction.reply(noteResults.map((rows) => rows['noteID']).toString());
-  } else {
-    interaction.reply(`Please register with /register first!`);
+    let noteResults = await database.findNotes(userID);
+
+    const notesEmbed = new MessageEmbed()
+    .setColor('#0dbadc')
+    .setTitle(interaction.member.displayName + '\'s Notes')
+    .setTimestamp();
+    for(var note of noteResults) {
+      console.log(note);
+      try { notesEmbed.addField("Note ID: " + note['noteID'].toString(), note['noteMessage'] , false); }
+      catch (error) {error_handler(interaction, error)};
+    }
+    try {
+      await interaction.reply({embeds: [notesEmbed], ephemeral: false});
+    } catch (error) {
+      error_handler(interaction, error);
+    }
+
+    // interaction.reply(noteResults.map((rows) => rows['noteID']).toString());
   }
 }
 
@@ -210,14 +301,29 @@ async function registerUser(interaction) {
 }
 
 async function checkUserRegistered(discordID) {
-  return (await database.getUserRow(discordID)) !== undefined;
+  if(await database.getUserRow(discordID).catch((err)=>{
+    interaction.reply("An error occured checking user registration");
+    console.log(err);
+  }) == undefined) {
+    interaction.reply(`Please register with /register first!`);
+    return false;
+  }
+  return true;
 }
 
 async function deregister(interaction) {
   let userID = interaction.member.id;
+  if(await database.getUserRow(discordID) == undefined) {
+    interaction.reply("You're not even registered!");
+    return;
+  }
   let result = await database.removeUserData(userID);
   interaction.reply("You're deregistered");
 }
 
+function error_handler(interaction, e) {
+  interaction.reply(`An error occured`);
+  console.error(e);
+}
 
 client.login(process.env.BOT_PRIVATE);

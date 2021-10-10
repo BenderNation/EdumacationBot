@@ -141,7 +141,14 @@ function insertData(tableName, dataArray) {
             reject(err);
           }
           resolve(this.lastID);});
+        db.all("SELECT * from ReminderTable", [] , (err, rows) => {if(err) console.error(err); else console.log(rows);});
         break;
+        // db.run(insertReminderTable, dataArray, function(err) {
+        //   if(err) {
+        //     reject(err);
+        //   }
+        //   resolve(this.lastID);});
+        // break;
       }
       default: {
         reject(new Error("No such table: " + tableName));
@@ -166,9 +173,8 @@ function removeUserData(discordID) {
     db.run(RemoveUserTable, discordID, (err) => reject(err));
     resolve(true);
   });
-
-
 }
+
 
 // function getUserRow(discordID, callback) {
 //   let stm = db.prepare("SELECT * from UserTable where discordID = ?");
@@ -198,18 +204,22 @@ function getCanvasToken(discordID, callback) {
   }).finalize();
 }
 
-function getNotes(discordID) {
-  return new Promise((resolve, reject) => {
-    let stm = db.prepare("SELECT noteID, noteMessage FROM NotesTable WHERE discordID = ?");
+function findNotes(discordID, message) {
+  let cmd, args;
+  if(message === undefined) {
+    cmd = "SELECT noteID, noteMessage FROM NotesTable WHERE discordID = ?";
+    args = [discordID];
+  } else{
+    cmd = "SELECT noteID, noteMessage FROM NotesTable WHERE discordID = ? AND noteMessage LIKE ?";
+    args = [discordID, "%"+message+"%"];
+  }
 
-    stm.all([discordID], (err, rows) => {
+  return new Promise((resolve, reject) => {
+    db.all(cmd, args, (err, rows) => {
       if(err)
         reject(err);
-      else{ 
-        console.log(rows);
-        resolve(rows);
-      }
-    }).finalize();
+      resolve(rows);
+    });
   });
 }
 
@@ -226,18 +236,36 @@ function getNote(noteID, discordID) {
   });
 }
 
-function findNotes(discordID, message, callback) {
-  const cmd = "SELECT noteMessage FROM NotesTable WHERE discordID = ? AND noteMessage LIKE ?";
-
-  db.all(cmd, [discordID, "%"+message+"%"], (err, rows) => {
-    if(err)
-      console.error(err);
-    callback(rows);
-  });
-}
-
 // here's how to do order by
 // let dbCommand = `select * from ActivityTable where amount>-1 and userID = ${userID} and date <= ${oneWeekAgo} order by date DESC`;
+
+
+function deleteItem(tableName, itemID) {
+  const RemoveNoteCmd = "delete from NotesTable where noteID = ?";
+  const RemoveReminderCmd = "delete from ReminderTable where reminderID = ?";
+  
+  return new Promise((resolve, reject) => {
+    if (tableName === "NotesTable") {
+      db.run(RemoveNoteCmd, itemID, function (err) {
+        if(err)
+          reject(err);
+        else
+          resolve(this.changes);
+      });
+    } else if (tableName === "ReminderTable") {
+      db.run(RemoveReminderCmd, itemID, function (err) {
+        if(err)
+          reject(err);
+        else
+          resolve(this.changes);
+      });
+    }
+    else {
+      reject(new Error("Invalid Table Name: " + tableName));
+    }
+  });  
+}
+
 
 function getReminders(discordID, callback) {
   const cmd = "SELECT reminderID, reminderMessage FROM ReminderTable WHERE discordID = ? ORDER BY notifyTime DESC";
@@ -247,16 +275,6 @@ function getReminders(discordID, callback) {
 }
 
 function deleteTable(tableName) {
-  // return new Promise((resolve,reject) => {
-  //   let stm = db.prepare("SELECT * from UserTable where discordID = ?");
-  //   stm.get([discordID], (err, row) =>{
-  //     if(err) 
-  //       reject(err);
-  //     else
-  //       // resolve(row);
-  //       resolve(row)
-  //   }).finalize();
-  // });
   return new Promise((resolve, reject) => {
     db.run(`DROP TABLE IF EXISTS ${tableName}`, (err) => {
       if (err) {
@@ -266,7 +284,6 @@ function deleteTable(tableName) {
       }
     });
   });
-  // db.run("DELETE * FROM sqlite_master WHERE name= ?", [TableName], (err) => {if(err) console.Error(err);});
 }
 
 // const insertUserTable = "insert into UserTable (discordID, nickname, canvasToken) values (?,?,?)";
@@ -302,9 +319,9 @@ module.exports = {
   getUserRow,
   getCanvasToken,
   getNote,
-  getNotes,
   getReminders,
   populateData,
   debugSQL,
-  findNotes
+  findNotes,
+  deleteItem
 }
