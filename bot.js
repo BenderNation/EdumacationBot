@@ -80,6 +80,11 @@ client.on('messageCreate', async message => {
       name:'findnotes',
       description: 'Searches through the table for posts for the keywords',
       options: [{name: 'message', type: "STRING", description: 'The keyword to search by', required: true}]
+    },
+    {
+      name:'settimezone',
+      description: 'Sets the user\'s time zone',
+      options: [{name: 'timezone', type: "STRING", description: 'Timezone string following international standard', required: true}]
     }
     ];
 		try{
@@ -173,7 +178,9 @@ client.on('interactionCreate', async interaction => {
     deleteReminder(interaction);
   else if (interaction.commandName === 'searchreminder')
     searchReminder(interaction);
-  
+
+  else if (interaction.commandName === 'settimezone')
+    setTimeZone(interaction);
 
 });
 
@@ -279,14 +286,33 @@ async function getAllReminders(interaction) {
   let userRegistered = await checkUserRegistered(interaction, userID);
   if (userRegistered) {
     let reminderResults = await database.findReminders(userID);
-
+    let userResults = await database.getUserRow(userID);
     const remindersEmbed = new MessageEmbed()
     .setColor('#0dbadc')
     .setTitle(interaction.member.displayName + '\'s Reminders')
     .setTimestamp();
     for(var reminder of reminderResults) {
-      try { remindersEmbed.addField("Reminder ID: " + reminder['reminderID'].toString(), reminder['reminderMessage'] , false); }
-      catch (error) {error_handler(interaction, error)};
+      try {
+        let remindDate = new Intl.DateTimeFormat('en-US', {
+          timeZone: userResults['timezone'],
+          timeZoneName: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          second: 'numeric',
+          year: 'numeric'
+        }).format(
+          new Date(reminder['notifyTime'])
+        );
+        remindersEmbed.addField("Reminder ID: " + reminder['reminderID'].toString(),
+          "When: " + remindDate,
+          reminder['reminderMessage'], false); 
+      }
+      catch (error) {
+        error_handler(interaction, error);
+        return;
+      };
     }
     try {
       await interaction.reply({embeds: [remindersEmbed], ephemeral: false});
@@ -304,18 +330,11 @@ async function remindUser(reminderObject){
     reminderObject['reminderID']).catch((err)=>console.error(err));
 
     setReminderTimeout();
-} 
-
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Notes Table section                                                                  //
 //////////////////////////////////////////////////////////////////////////////////////////
-
-// function insertData(tableName, dataArray)
-// NotesTable
-// const insertUserTable = "insert into UserTable (discordID, nickname, canvasToken) values (?,?,?)";
-// const insertNotesTable = "insert into NotesTable (discordID, noteMessage, timeStamp) values (?,?,?)";
-// const insertReminderTable = "insert into ReminderTable (discordID, reminderMessage, notifyTime, timeStamp) values (?,?,?,?)";
 
 async function addNote(interaction) {
   let userID = interaction.user.id;
@@ -329,23 +348,6 @@ async function addNote(interaction) {
     interaction.reply(`Added Note ${returnID}`);
   }
 }
-
-// async function addReminder(interaction) {
-//   let userID = interaction.user.id;
-//   let message = await interaction.options.getString("message");
-
-//   let userRegistered = await checkUserRegistered(userID);
-//   console.log(userRegistered);
-//   if (userRegistered) {
-//     let returnID = await database.insertData("ReminderTable", [userID, message]).catch((e) => {interaction.reply(`addReminder failed due to error: ${e}`)});
-//     interaction.reply(`Added Reminder ${returnID}`);
-//     // if (returnID === undefined) {
-//     //   interaction.reply("No such note exists");
-//     // } else {
-//     //   interaction.reply(`Note ${noteiD} deleted`);
-//     // }
-//   }
-// }
 
 async function deleteNote(interaction) {
   let userID = interaction.user.id;
@@ -483,16 +485,18 @@ async function deregister(interaction) {
 
 async function setTimeZone(interaction) {
   let userID = interaction.user.id;
-  let tzString = await interaction.options.getMessage("timezone");
+  let tzString = await interaction.options.getString("timezone");
   if(isValidTimezone(tzString)) {
-    let tzUpdateResult = await modifyTimezone(userID, tzString).catch((e) => interaction.reply(`Error Modifying Timezone: ${e}`));
-    if(tzUpdateResult == 1)
+    let tzUpdateResult;
+    try{
+      tzUpdateResult = await database.modifyTimezone(userID, tzString)
       interaction.reply("Successfully set your timezone to " + tzString);
-    else {
-      console.error("Unexpected number of changed rows upon modify timezone\n"
-                  + "Expected 1, Got :" + tzUpdateResult.toString());
-      interaction.reply("Something went wrong");
+    } catch (e){
+      error_handler(interaction, e);
+      return;
     }
+  } else {
+    interaction.reply(tzString + " is an invalid timezone string");
   }
 }
 
@@ -501,12 +505,15 @@ function isValidTimezone(tz) {
     Intl.DateTimeFormat(undefined, {timeZone: tz});
     return true;
   } catch (ex) {
+    console.error(ex);
     return false;
   }
 }
 
 function error_handler(interaction, e) {
-  interaction.reply(`An error occured`);
+  interaction.reply({
+    content: `An Error Occured Executing That Command`,
+    ephemeral: true});
   console.error(e);
 }
 
