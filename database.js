@@ -8,82 +8,134 @@ let db;
 
 // data = [discordID, nickname, canvasToken, noteID, reminderID, reminderMessage, notify]
 
-function createUserTable() {
-    const cmd = 'CREATE TABLE UserTable (discordID INTEGER PRIMARY KEY NOT NULL, nickname TEXT, canvasToken TEXT)';
-    db.run(cmd, (err, val) => {
-      if (err)
+async function createUserTable() {
+  let stm = db.prepare(`CREATE TABLE UserTable (
+      discordID   TEXT PRIMARY KEY NOT NULL,
+      nickname    TEXT,
+      canvasToken TEXT,
+      timezone    TEXT    DEFAULT 'UTC')`);
+  return new Promise(async (resolve, reject) => {
+    stm.run((err, val) => {
+      if (err){
         console.error("User Table creation failure", err.message);
-      else
+        reject(err);
+        }
+      else{
         console.log("Created user table");
-    });
+        resolve(val);
+      }
+    }).finalize();
+  });
 }
 
-function createNotesTable() {
+async function createNotesTable() {
   let stm = db.prepare(`CREATE TABLE NotesTable (
-    noteID INTEGER PRIMARY KEY NOT NULL,
-    discordID INTEGER,
+    noteID      INTEGER PRIMARY KEY NOT NULL,
+    discordID   TEXT,
     noteMessage TEXT,
-    FOREIGN KEY(discordID) references UserTable(discordID))`)
-  stm.run((err, val) => {
-    if (err)
-      console.error("Notes Table creation failure", err.message);
-    else
-      console.log("Created notes table");
-  }).finalize();
+    timeStamp   INTEGER,
+    FOREIGN KEY(discordID) references UserTable(discordID))`);
+  return new Promise(async function (resolve, reject) {
+  
+    stm.run((err, val) => {
+      if (err) {
+        console.error("Notes Table creation failure", err.message);
+        reject(err);
+      }
+      else{
+        console.log("Created notes table");
+        resolve(val);
+      }
+    }).finalize();
+  });
 }
 
-function createReminderTable() {
+async function createReminderTable() {
   let stm = db.prepare(`CREATE TABLE ReminderTable (
-    reminderID INTEGER PRIMARY KEY NOT NULL,
-    discordID INTEGER,
+    reminderID      INTEGER PRIMARY KEY NOT NULL,
+    discordID       TEXT,
     reminderMessage TEXT,
-    notifyTime INTEGER,
+    notifyTime      INTEGER,
+    timeStamp       INTEGER,
     FOREIGN KEY(discordID) references UserTable(discordID))`)
-  stm.run((err, val) => {
-    if (err)
-      console.error("Reminder Table creation failure", err.message);
-    else
-      console.log("Created reminder table");
-  }).finalize();
-}
-
-function getUserTable() {
-  let cmd = " SELECT name FROM sqlite_master WHERE type='table' AND name='UserTable' ";
-  db.get(cmd, function (err, val) { // sql method: .get(sql, params, (err, row))
-    if (val == undefined) {
-          console.log("No user database table - creating one");
-          createUserTable();
-    } else {
-          console.log("User database table found");
-    }
+  return new Promise(async function (resolve, reject)  {
+    stm.run((err, val) => {
+      if (err){
+        console.error("Reminder Table creation failure", err.message);
+        reject(err);
+      }
+      else{
+        console.log("Created reminder table");
+        resolve(val)
+      }
+    }).finalize();
   });
 }
 
-function getNotesTable() {
-  let cmd = " SELECT name FROM sqlite_master WHERE type='table' AND name='NotesTable' ";
-  db.get(cmd, function (err, val) { // sql method: .get(sql, params, (err, row))
-    if (val == undefined) {
-          console.log("No notes database - creating one");
-          createNotesTable();
-    } else {
-          console.log("Notes database table found");
-    }
+async function getUserTable() {
+  let cmd = "SELECT name FROM sqlite_master WHERE type='table' AND name='UserTable'";
+  let promiseResult = new Promise((resolve, reject) => {
+    db.get(cmd, function (err, val) {
+        if(val == undefined)
+          reject(val);
+        else
+          resolve(val);
+    });
+  })
+  .then(() => {
+    console.log("User database table found");
+    })
+  .catch(async () => {
+    console.log("No user database table - creating one");
+    await createUserTable();
   });
+  return promiseResult;
 }
 
-function getReminderTable() {
-  let stm = db.prepare(" SELECT name FROM sqlite_master WHERE type='table' AND name='ReminderTable' ");
-  stm.get(function (err, val) { // sql method: .get(sql, params, (err, row))
-    if (val == undefined) {
-          console.log("No reminders database - creating one");
-          createReminderTable();
-    } else {
-          console.log("Reminders database table found");
-    }
-  }).finalize();
+async function getNotesTable() {
+  let cmd = "SELECT name FROM sqlite_master WHERE type='table' AND name='NotesTable'";
+  
+  let promiseResult = new Promise((resolve, reject) => {
+    db.get(cmd, function (err, val) {
+        if(val == undefined)
+          reject(val);
+        else
+          resolve(val);
+    });
+  })
+  .then(() => {
+    console.log("Notes database table found");
+    })
+  .catch(async () => {
+    console.log("No notes database table - creating one");
+    await createNotesTable();
+  });
+  return promiseResult;
+
 }
 
-function connect(path = dbPath) {
+async function getReminderTable() {
+  let cmd = "SELECT name FROM sqlite_master WHERE type='table' AND name='ReminderTable'";
+  let promiseResult = new Promise((resolve, reject) => {
+    db.get(cmd, function (err, val) {
+        if(val == undefined)
+          reject(val);
+        else
+          resolve(val);
+    });
+  })
+  .then(() => {
+    console.log("Reminders database table found");
+    })
+  .catch(async () => {
+    console.log("No reminders database table - creating one");
+    await createReminderTable();
+  });
+  return promiseResult;
+
+}
+
+async function connect(path = dbPath) {
   db  = new SQLite3.Database(path, (err) => {
     if (err) {
       console.error(err.message);
@@ -112,59 +164,76 @@ function insertData(tableName, dataArray) {
   // ex of use: insertUserTable(<value for discordID>, <value of nickname>, <value for canvasToken>);
   //            the above generates a string with the apporiate values
   const insertUserTable = "INSERT into UserTable (discordID, nickname, canvasToken) VALUES (?,?,?)";
-  const insertNotesTable = "INSERT into NotesTable (discordID, noteMessage) VALUES (?,?)";
-  const insertReminderTable = "INSERT into ReminderTable (discordID, reminderMessage, notifyTime) VALUES (?,?,?)";
+  const insertNotesTable = "INSERT into NotesTable (discordID, noteMessage, timeStamp) VALUES (?,?,?)";
+  const insertReminderTable = "INSERT into ReminderTable (discordID, reminderMessage, notifyTime, timeStamp) VALUES (?,?,?,?)";
 
-
+  let insertStatement = (tableName == 'UserTable') ? insertUserTable:
+                        (tableName == "NotesTable") ? insertNotesTable:
+                        (tableName == "ReminderTable") ? insertReminderTable:
+                        null;
+    
   return new Promise((resolve, reject) => {
-    switch (tableName) {
-      case('UserTable'): {
-        db.run(insertUserTable, dataArray, function(err) {
-          if(err) {
-            reject(err);
-          }
-          resolve(this.lastID);});
-        break;
-      }
-      case('NotesTable'): {
-        db.run(insertNotesTable, dataArray, function(err) {
-          if(err) {
-            reject(err);
-          }
-          resolve(this.lastID);});
-        db.all("SELECT * from NotesTable", [] , (err, rows) => {if(err) console.error(err); else console.log(rows);});
-        break;
-      }
-      case('ReminderTable'): {
-        db.run(insertReminderTable, dataArray, function(err) {
-          if(err) {
-            reject(err);
-          }
-          resolve(this.lastID);});
-        db.all("SELECT * from ReminderTable", [] , (err, rows) => {if(err) console.error(err); else console.log(rows);});
-        break;
-        // db.run(insertReminderTable, dataArray, function(err) {
-        //   if(err) {
-        //     reject(err);
-        //   }
-        //   resolve(this.lastID);});
-        // break;
-      }
-      default: {
-        reject(new Error("No such table: " + tableName));
-        break;
-      }
+    if(insertStatement == null){
+      reject("Incorrect Table Name");
     }
 
+    db.run(insertStatement, dataArray, function(err) {
+      if(err) {
+        reject(err);
+      }
+      resolve(this.lastID);});
   });
 }
 
+function modifyTimezone(discordID, tzString) {
+  const insertStatement = "UPDATE UserTable SET timezone = ? WHERE discordID = ?";
+  return new Promise((resolve, reject) => {
+    db.run(insertStatement, [tzString, discordID], function(err) {
+      if(err) {
+        reject(err);
+      }
+      resolve(this.changes);});
+  });
+}
 
+// switch (tableName) {
+//  case('UserTable'): {
+//     db.run(insertUserTable, dataArray, function(err) {
+//       if(err) {
+//         reject(err);
+//       }
+//       resolve(this.lastID);});
+//     break;
+//   }
+//   case('NotesTable'): {
+//     db.run(insertNotesTable, dataArray, function(err) {
+//       if(err) {
+//         reject(err);
+//       }
+//       resolve(this.lastID);});
+//     // db.all("SELECT * from NotesTable", [] , (err, rows) => {if(err) console.error(err); else console.log(rows);});
+//     break;
+//   }
+//   case('ReminderTable'): {
+//     db.run(insertReminderTable, dataArray, function(err) {
+//       if(err) {
+//         reject(err);
+//       }
+//       resolve(this.lastID);});
+//     // db.all("SELECT * from ReminderTable", [] , (err, rows) => {if(err) console.error(err); else console.log(rows);});
+//     break;
+//   }
+  
+//   default: {
+//     reject(new Error("No such table: " + tableName));
+//     break;
+//   }
+// }
 
 function removeUserData(discordID) {
-  const RemoveUserTable = "delete from UserTable where discordID = ?";
-  const RemoveNotesTable = "delete from NotesTable where discordID = ?";
-  const RemoveReminderTable = "delete from ReminderTable where discordID = ?";
+  const RemoveUserTable = "DELETE FROM UserTable WHERE discordID = ?";
+  const RemoveNotesTable = "DELETE FROM NotesTable WHERE discordID = ?";
+  const RemoveReminderTable = "DELETE FROM ReminderTable WHERE discordID = ?";
 
 
   return new Promise((resolve, reject) => {
@@ -220,6 +289,47 @@ function findNotes(discordID, message) {
         reject(err);
       resolve(rows);
     });
+  });
+}
+
+// findReminders is taken from findNotes
+//  let stm = db.prepare(`CREATE TABLE ReminderTable (
+  // reminderID      INTEGER PRIMARY KEY NOT NULL,
+  // discordID       INTEGER,
+  // reminderMessage TEXT,
+  // notifyTime      INTEGER,
+  // timeStamp       INTEGER,
+  // FOREIGN KEY(discordID) references UserTable(discordID))`)
+function findReminders(discordID, message) {
+  let cmd, args;
+  if(message === undefined) {
+    cmd = "SELECT reminderID, reminderMessage FROM ReminderTable WHERE discordID = ?";
+    args = [discordID];
+  } else{
+    cmd = "SELECT reminderID, reminderMessage FROM ReminderTable WHERE discordID = ? AND reminderMessage LIKE ?";
+    args = [discordID, "%"+message+"%"];
+  }
+
+  return new Promise((resolve, reject) => {
+    db.all(cmd, args, (err, rows) => {
+      if(err)
+        reject(err);
+      resolve(rows);
+    });
+  });
+}
+
+// get the latest reminder in the table
+function getLatestReminder() {
+  return new Promise((resolve, reject) => {
+    let stm = db.prepare("SELECT discordID, reminderID, reminderMessage, notifyTime FROM ReminderTable ORDER BY notifyTime ASC");
+    stm.get([], (err, row) => {
+      if(err)
+        reject(err);
+      else{ 
+        resolve(row);
+      }
+    }).finalize();
   });
 }
 
@@ -323,5 +433,7 @@ module.exports = {
   populateData,
   debugSQL,
   findNotes,
-  deleteItem
+  deleteItem,
+  modifyTimezone,
+  getLatestReminder
 }
