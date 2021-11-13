@@ -201,6 +201,10 @@ async function addReminder(interaction) {
   // const javaScriptRelease = Date.parse('04 Dec 1995 00:12:00 GMT');
   let notifyTime = Date.parse(notifTimeInput);
 
+  if(notifyTime < time) {
+    interaction.reply(`Reminder can not be before current time!`);
+    return;
+  }
   console.log(`Reminder msg: ${message} currentTime:${time} notifyTime: ${notifyTime}`);
 
   let userRegistered = await checkUserRegistered(interaction, userID);
@@ -229,11 +233,21 @@ async function setReminderTimeout() {
       if (time <= 0)
         await remindUser(earliestReminder);
       else
-        currentReminder = setTimeout(async function() {
+        currentReminder = runAtDate(async function() {
           await remindUser(earliestReminder);
-      }, time);
+        }, time);
     } else
       currentReminder = null;
+}
+
+function runAtDate(func, date) {
+  var now = (new Date()).getTime();
+  var then = date.getTime();
+  var diff = Math.max((then - now), 0);
+  if (diff > 0x7FFFFFFF) //setTimeout limit is MAX_INT32=(2^31-1)
+      return setTimeout(function() {runAtDate(date, func);}, 0x7FFFFFFF);
+  else
+      return setTimeout(func, diff);
 }
 
 async function deleteReminder(interaction) {
@@ -253,15 +267,15 @@ async function deleteReminder(interaction) {
   }
 }
 
-async function getLatestReminder() {
-  let resultReminder = await database.getLatestReminder().catch(
-    (err)=>console.error("Error getting latest reminder:" + err));
-  if (resultReminder === undefined) {
-      return null;
-  } else {
-      return resultReminder;
-  }
-}
+// async function getLatestReminder() {
+//   let resultReminder = await database.getLatestReminder().catch(
+//     (err)=>console.error("Error getting latest reminder:" + err));
+//   if (resultReminder === undefined) {
+//       return null;
+//   } else {
+//       return resultReminder;
+//   }
+// }
 
 async function searchReminder(interaction) {
   let userID = interaction.user.id;
@@ -328,8 +342,7 @@ async function remindUser(reminderObject){
   await disUser.send(remindMessage);
   await database.deleteItem("ReminderTable", 
     reminderObject['reminderID']).catch((err)=>console.error(err));
-
-    setReminderTimeout();
+  setReminderTimeout();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
