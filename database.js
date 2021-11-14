@@ -339,5 +339,6 @@ module.exports = {
   findNotes,
   deleteItem,
   modifyTimezone,
-  getLatestReminder
+  getLatestReminder,
+  db
 }
