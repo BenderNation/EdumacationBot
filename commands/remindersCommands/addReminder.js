@@ -24,7 +24,7 @@ async function addReminder(interaction, client) {
     console.log(inputTimeZone);
 
   } else if(!isValidTimezone(inputTimeZone)) {
-    interaction.reply(tzString + " is an invalid timezone string");
+    interaction.reply("Invalid timezone string");
     return;
   }
   
@@ -35,14 +35,22 @@ async function addReminder(interaction, client) {
     inputDate = inputDate.substring(4);
 
   } else if(isNaN(Date.parse(inputDate))) {
-    interaction.reply(inputDate + " is an invalid date string");
+    interaction.reply(`\"${inputDate}\" is an invalid date string`);
     return;
   }
-  
-  // const javaScriptRelease = Date.parse('04 Dec 1995 00:12:00 GMT');
-  
-  let notifyTime = Date.parse(`${inputDate} ${inputTime} ${inputTimeZone}`);
-  console.log(`${inputDate} ${inputTime} ${inputTimeZone}`);
+
+  let inputTimeTillReminder = timeArrayParsing(inputTime);
+  let notifyTime;
+  if(inputTimeTillReminder < 0) {
+    interaction.reply(`\"${inputTime}\" is an invalid input string`);
+    return
+  }
+  else if (inputTimeTillReminder > 0) {
+    notifyTime = inputTimeTillReminder + time;
+  } else {
+    notifyTime = Date.parse(`${inputDate} ${inputTime} ${inputTimeZone}`);
+  }
+  // console.log(`${inputDate} ${inputTime} ${inputTimeZone}`);
 
   if(isNaN(notifyTime)) {
     interaction.reply("Invalid time/date string provided");
@@ -61,7 +69,70 @@ async function addReminder(interaction, client) {
   interaction.reply(`Added Reminder ${returnID} for: \n${dateString}`);
 
   setReminderTimeout(client);
-  
+}
+
+function timeArrayParsing(inputTime) {
+
+  // maybe we can put the "in" check in front of the parsing, this way we don't get "in3s2m1hr1d" as a valid input "in 3s2m1hr1d" is fine
+   
+
+
+  // let timeArr = inputTime.split(" ");
+
+  // adds a space between letters and numbers, trim the string, and then split it by whitespace.
+  inputTime = inputTime.replace(/(\d+)/g, function (_, num){
+      return ' ' + num + ' ';
+  });
+  inputTime = inputTime.trim();
+  var timeArr = inputTime.split(/\s+/);
+
+  let sumTime = 0;
+  let secUsed, minUsed, hrUsed, dayUsed = false;
+  if(timeArr[0] == "in") {
+    let reminderTime = 0;
+
+    for(let i = 1; i < timeArr.length - 1; i++) {
+      reminderTime = parseInt(timeArr[i]);
+      if (!(Number.isInteger(reminderTime) && reminderTime >= 0)) {
+        return -1;
+      }
+      // "in 3 second 2 secs"
+      switch(timeArr[i+1]) {
+        case "seconds": case "second": case "secs": case "sec": case "s":
+          if(secUsed) {
+            return -1;
+          }
+          sumTime += reminderTime * 1000;
+          secUsed = true;
+          break;
+        case "minutes": case "minute": case "mins": case "min":
+          if (minUsed) {
+            return -1;
+          }
+          sumTime += reminderTime * 60 * 1000;
+          minUsed = true;
+          break;
+        case "hours": case "hour": case "hr":
+          if (hrUsed) {
+            return -1;
+          }
+          sumTime += reminderTime * 60 * 60 * 1000;
+          hrUsed = true;
+          break;
+        
+        case "days": case "day": case "d":
+          if (dayUsed) {
+            return -1;
+          }
+          sumTime += reminderTime * 24 * 60 * 60 * 1000;
+          break;
+        default:
+          return -1;
+      }
+    }
+    return sumTime;
+  }
+  return 0;
 }
 
 module.exports = {
