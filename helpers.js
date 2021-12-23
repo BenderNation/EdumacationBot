@@ -35,7 +35,7 @@ const getAllFiles = function(dirPath, arrayOfFiles) {
 async function errorHandler(interaction, e) {
   console.error(e);
   await interaction.reply({
-    content: `There was an error while executing this command`,
+    content: `There was an error while executing this command\n${e}`,
     ephemeral: true});
 }
 

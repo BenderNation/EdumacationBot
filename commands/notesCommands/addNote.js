@@ -13,7 +13,7 @@ async function addNote(interaction) {
   try {
     let userRegistered = await checkUserRegistered(interaction,userID);
     if (userRegistered) {
-      let returnID = await database.insertData("NotesTable", [userID, message, time]).catch((e) => {interaction.reply(`addNote failed due to error: ${e}`)});
+      let returnID = await database.insertData("NotesTable", [userID, message, time]);
       interaction.reply(`Added Note ${returnID}`);
     }
   } catch (error) {

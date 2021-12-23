@@ -18,7 +18,6 @@ for (const file of commandFiles) {
 const database = require("./database.js");
 
 client.once('ready', async function() {
-  await setReminderTimeout(client);
 
   console.log('Ready!');
 });
@@ -58,6 +57,9 @@ async function main() {
 	await database.getUserTable();
 	await database.getNotesTable();
 	await database.getReminderTable();
+	
+	await setReminderTimeout(client);
+
 }
 
 main();

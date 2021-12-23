@@ -1,9 +1,9 @@
 const SQLite3 = require('@journeyapps/sqlcipher').verbose();
+const {db_password} = require('./config.json');
+
 const dbPath = './db/testDB.db';
 const { table } = require('console');
 const util = require('util');
-
-require('dotenv').config();
 
 /* db creates a database object from existing file or creates one if not found */
 
@@ -24,10 +24,11 @@ const allDB = util.promisify(db.all.bind(db));
 
 async function createUserTable() {
   let cmd = `CREATE TABLE UserTable (
-    discordID   TEXT PRIMARY KEY NOT NULL,
-    nickname    TEXT,
-    canvasToken TEXT,
-    timezone    TEXT    DEFAULT 'UTC')`;
+    discordID    TEXT PRIMARY KEY NOT NULL,
+    nickname     TEXT,
+    canvasToken  TEXT,
+    canvasDomain TEXT,
+    timezone     TEXT    DEFAULT 'UTC')`;
   
   try {
     await runDB(cmd,[]);
@@ -92,7 +93,7 @@ async function getNotesTable() {
     let tableGetResult = await getDB(cmd, []);
     if(tableGetResult == undefined) {
       console.log("No notes database table - creating one");
-      await createUserTable();
+      await createNotesTable();
     } else {
       console.log("Notes database table found");
     }
@@ -109,7 +110,7 @@ async function getReminderTable() {
     let tableGetResult = await getDB(cmd, []);
     if(tableGetResult == undefined) {
       console.log("No reminders database table - creating one");
-      await createUserTable();
+      await createReminderTable();
     } else {
       console.log("Reminders database table found");
     }
@@ -121,7 +122,7 @@ async function getReminderTable() {
 
 async function connect() {
   //Encrypts/decrypts the database with a passphrase
-  await runDB(`PRAGMA key = ${process.env.DB_PASSWORD}`);
+  await runDB(`PRAGMA key = ${db_password}`);
 
   //Enables foreign key contraints
   await runDB("PRAGMA foreign_keys = ON");  
@@ -173,6 +174,19 @@ function modifyTimezone(discordID, tzString) {
   });
 }
 
+
+function modifyCanvasToken(discordID, tokenString, domainString) {
+  const insertStatement = "UPDATE UserTable SET canvasToken = ?, canvasDomain = ? WHERE discordID = ?";
+  return new Promise((resolve, reject) => {
+    db.run(insertStatement, [tokenString, domainString, discordID], function(err) {
+      if(err) {
+        reject(err);
+      }
+      resolve(this.changes);});
+  });
+}
+
+
 async function removeUserData(discordID) {
   const RemoveUserTable = "DELETE FROM UserTable WHERE discordID = ?";
   const RemoveNotesTable = "DELETE FROM NotesTable WHERE discordID = ?";
@@ -191,7 +205,7 @@ async function getUserRow(discordID) {
 
 // const getUserTableData = "SELECT from <tablename> where discordID = "value", canvasToken ="value"
 async function getCanvasToken(discordID) {
-  const cmd = "SELECT canvasToken from UserTable where discordID = ?";
+  const cmd = "SELECT canvasToken, canvasDomain from UserTable where discordID = ?";
   return await getDB(cmd, [discordID]);
 }
 
@@ -340,5 +354,8 @@ module.exports = {
   deleteItem,
   modifyTimezone,
   getLatestReminder,
+  modifyCanvasToken,
   db
 }
+
+
